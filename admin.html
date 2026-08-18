@@ -99,12 +99,12 @@
       </div>
       <div>
         <label for="inputDept" class="text-xs font-semibold uppercase tracking-wide text-ink/50">Department / Class</label>
-        <input id="inputDept" list="deptSuggestions" type="text" required class="mt-1 w-full px-4 py-3 rounded-2xl border-2 border-ink/10 focus:outline-none focus:border-punch transition-colors">
-        <datalist id="deptSuggestions">
-          <option value="Commerce"></option>
-          <option value="Humanities"></option>
-          <option value="Science"></option>
-        </datalist>
+        <select id="inputDept" required class="mt-1 w-full px-4 py-3 rounded-2xl border-2 border-ink/10 focus:outline-none focus:border-punch transition-colors bg-white">
+          <option value="" disabled selected>Select class…</option>
+          <option value="Commerce">Commerce</option>
+          <option value="Humanity">Humanity</option>
+          <option value="Science">Science</option>
+        </select>
       </div>
       <div>
         <label for="inputAmount" class="text-xs font-semibold uppercase tracking-wide text-ink/50">Amount (₹)</label>
