@@ -96,17 +96,18 @@
       </div>
     </div>
 
-    <!-- Search + contributor list -->
+    <!-- Contributor tabs -->
     <div id="contributorsSection" class="mt-10 mb-16">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h2 class="font-display text-xl font-bold">Contributors 🎊</h2>
-        <div class="flex items-center gap-2">
-          <div class="relative">
-            <input id="searchInput" type="text" placeholder="Search by name…" class="w-full sm:w-64 pl-9 pr-4 py-2 rounded-full border-2 border-ink/10 bg-white text-sm focus:outline-none focus:border-punch transition-colors">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40 text-sm">🔎</span>
-          </div>
-          <button id="refreshBtn" type="button" class="shrink-0 w-9 h-9 grid place-items-center rounded-full bg-ink/5 hover:bg-ink/10 transition-colors text-lg" title="Refresh">↻</button>
+      <h2 class="font-display text-xl font-bold mb-4">Contributors 🎊</h2>
+
+      <div id="deptTabs" class="grid grid-cols-3 gap-2 sm:gap-3 mb-5"></div>
+
+      <div class="flex items-center gap-2 mb-4">
+        <div class="relative flex-1">
+          <input id="searchInput" type="text" placeholder="Search by name…" class="w-full pl-9 pr-4 py-2 rounded-full border-2 border-ink/10 bg-white text-sm focus:outline-none focus:border-punch transition-colors">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40 text-sm">🔎</span>
         </div>
+        <button id="refreshBtn" type="button" class="shrink-0 w-9 h-9 grid place-items-center rounded-full bg-ink/5 hover:bg-ink/10 transition-colors text-lg" title="Refresh">↻</button>
       </div>
 
       <p id="listState" class="text-center py-10 text-ink/40 text-sm">Loading contributions…</p>
@@ -126,6 +127,12 @@
     };
 
     const DEPARTMENTS = ['Commerce', 'Humanity', 'Science'];
+    const DEPT_META = {
+      Commerce: { icon: '💼', active: 'bg-zap text-ink border-zap' },
+      Humanity: { icon: '📚', active: 'bg-violet text-white border-violet' },
+      Science:  { icon: '🔬', active: 'bg-cool text-white border-cool' },
+    };
+    let activeDept = DEPARTMENTS[0];
 
     let allContributions = [];
     const PALETTE = ['#FF3E73', '#FFC93C', '#14B8A6', '#7C4DFF'];
@@ -176,6 +183,7 @@
         if (!data.success) throw new Error(data.error || 'Could not load data.');
         allContributions = data.contributions || [];
         renderSummary(data.summary || { totalAmount: 0, totalContributors: 0 });
+        renderTabs();
         renderList(document.getElementById('searchInput').value);
         document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       } catch (err) {
@@ -209,55 +217,43 @@
       </div>`;
     }
 
+    function renderTabs() {
+      const wrap = document.getElementById('deptTabs');
+      wrap.innerHTML = DEPARTMENTS.map(dept => {
+        const items = allContributions.filter(c => (c.department || '').trim().toLowerCase() === dept.toLowerCase());
+        const total = items.reduce((sum, c) => sum + (c.status === 'Paid' ? c.amount : 0), 0);
+        const meta = DEPT_META[dept];
+        const isActive = dept === activeDept;
+        return `<button type="button" data-dept="${dept}" class="dept-tab flex flex-col items-center gap-1 rounded-2xl border-2 px-2 py-4 transition-all ${isActive ? meta.active + ' shadow-pop scale-[1.03]' : 'bg-white border-ink/10 text-ink/60 hover:border-ink/25'}">
+          <span class="text-2xl">${meta.icon}</span>
+          <span class="font-display font-bold text-sm">${dept}</span>
+          <span class="text-xs ${isActive ? 'opacity-80' : 'text-ink/40'}">${items.length} · ${formatINR(total)}</span>
+        </button>`;
+      }).join('');
+      wrap.querySelectorAll('.dept-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeDept = btn.dataset.dept;
+          renderTabs();
+          renderList(document.getElementById('searchInput').value);
+        });
+      });
+    }
+
     function renderList(filter) {
       const term = (filter || '').trim().toLowerCase();
-      const filtered = term
-        ? allContributions.filter(c => c.name.toLowerCase().includes(term) || (c.department || '').toLowerCase().includes(term))
-        : allContributions;
+      const deptItems = allContributions.filter(c => (c.department || '').trim().toLowerCase() === activeDept.toLowerCase());
+      const filtered = term ? deptItems.filter(c => c.name.toLowerCase().includes(term)) : deptItems;
       const listEl = document.getElementById('contributorList');
       const stateEl = document.getElementById('listState');
 
       if (filtered.length === 0) {
         stateEl.classList.remove('hidden');
-        stateEl.textContent = allContributions.length === 0 ? 'No contributions yet — be the first! 🎉' : 'No matches found.';
+        stateEl.textContent = deptItems.length === 0 ? `No contributions from ${activeDept} yet — be the first! 🎉` : 'No matches found.';
         listEl.innerHTML = '';
         return;
       }
       stateEl.classList.add('hidden');
-
-      const groups = {};
-      DEPARTMENTS.forEach(d => groups[d] = []);
-      const others = [];
-      filtered.forEach(c => {
-        const dept = (c.department || '').trim();
-        const match = DEPARTMENTS.find(d => d.toLowerCase() === dept.toLowerCase());
-        if (match) groups[match].push(c); else others.push(c);
-      });
-
-      let html = '';
-      DEPARTMENTS.forEach(dept => {
-        const items = groups[dept];
-        const total = items.reduce((sum, c) => sum + (c.status === 'Paid' ? c.amount : 0), 0);
-        html += `<div class="mb-6">
-          <div class="flex items-center justify-between mb-2 px-1">
-            <h3 class="font-display text-sm font-bold text-ink/70">${dept}</h3>
-            <span class="text-xs text-ink/40">${items.length} ${items.length === 1 ? 'student' : 'students'} · ${formatINR(total)}</span>
-          </div>
-          <div class="space-y-2">
-            ${items.length ? items.map(contributorCard).join('') : '<p class="text-xs text-ink/30 px-1 py-3">No contributions yet.</p>'}
-          </div>
-        </div>`;
-      });
-      if (others.length) {
-        html += `<div class="mb-6">
-          <div class="flex items-center justify-between mb-2 px-1">
-            <h3 class="font-display text-sm font-bold text-ink/70">Others</h3>
-            <span class="text-xs text-ink/40">${others.length} entries</span>
-          </div>
-          <div class="space-y-2">${others.map(contributorCard).join('')}</div>
-        </div>`;
-      }
-      listEl.innerHTML = html;
+      listEl.innerHTML = filtered.map(contributorCard).join('');
     }
 
     document.getElementById('searchInput').addEventListener('input', e => renderList(e.target.value));
