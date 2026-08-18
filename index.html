@@ -86,7 +86,7 @@
     </div>
 
     <!-- Summary cards -->
-    <div class="relative -mt-6 sm:-mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+    <div class="relative -mt-6 sm:-mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
       <div class="ticket-card relative bg-white rounded-3xl shadow-pop border border-ink/5 px-6 py-6 before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-3 before:w-6 before:h-6 before:rounded-full before:bg-cream before:z-10 after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:-right-3 after:w-6 after:h-6 after:rounded-full after:bg-cream after:z-10">
         <p class="text-xs font-semibold uppercase tracking-wide text-ink/50">Total Collected</p>
         <p class="font-mono text-3xl font-bold mt-2" id="cardTotal">₹0</p>
@@ -97,29 +97,12 @@
         <p class="text-xs font-semibold uppercase tracking-wide text-ink/50">Contributors</p>
         <p class="font-mono text-3xl font-bold mt-2"><span id="cardContributors">0</span> <span class="text-base font-body font-normal text-ink/40">students</span></p>
         <div class="border-t-2 border-dashed border-ink/10 my-3"></div>
-        <p class="text-xs text-ink/40">have chipped in so far</p>
-      </div>
-      <div class="ticket-card relative bg-white rounded-3xl shadow-pop border border-ink/5 px-6 py-6 before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-3 before:w-6 before:h-6 before:rounded-full before:bg-cream before:z-10 after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:-right-3 after:w-6 after:h-6 after:rounded-full after:bg-cream after:z-10">
-        <p class="text-xs font-semibold uppercase tracking-wide text-ink/50">Funded</p>
-        <p class="font-mono text-3xl font-bold mt-2" id="cardPercent">0%</p>
-        <div class="border-t-2 border-dashed border-ink/10 my-3"></div>
-        <p class="text-xs text-ink/40">of our collection goal</p>
-      </div>
-    </div>
-
-    <!-- Progress bar -->
-    <div class="mt-7">
-      <div class="flex justify-between items-baseline mb-2 text-sm text-ink/70">
-        <span>Goal: <span class="font-mono font-bold text-ink" id="goalLabel">₹0</span></span>
-        <span id="goalRemaining" class="font-mono text-xs sm:text-sm">₹0 to go</span>
-      </div>
-      <div class="relative h-8 rounded-full bg-ink/10 overflow-hidden ring-1 ring-ink/10">
-        <div id="progressFill" class="h-full rounded-full bg-gradient-to-r from-punch to-zap transition-all duration-700 ease-out" style="width:0%"></div>
+        <button type="button" onclick="document.getElementById('contributorsSection').scrollIntoView({behavior:'smooth'})" class="text-xs font-display font-semibold text-punch hover:text-ink transition-colors">View All Contributors →</button>
       </div>
     </div>
 
     <!-- Search + contributor list -->
-    <div class="mt-10 mb-16">
+    <div id="contributorsSection" class="mt-10 mb-16">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <h2 class="font-display text-xl font-bold">Contributors 🎊</h2>
         <div class="flex items-center gap-2">
@@ -145,8 +128,8 @@
     // ============================================================
     const CONFIG = {
       SCRIPT_URL: 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE',
-      GOAL_AMOUNT: 50000,
     };
+
 
     let allContributions = [];
     const PALETTE = ['#FF3E73', '#FFC93C', '#14B8A6', '#7C4DFF'];
@@ -207,16 +190,9 @@
     }
 
     function renderSummary(summary) {
-      const goal = CONFIG.GOAL_AMOUNT;
-      const pct = goal > 0 ? Math.min(100, Math.round((summary.totalAmount / goal) * 100)) : 0;
       animateNumber(document.getElementById('heroTotal'), summary.totalAmount, { prefix: '₹' });
       animateNumber(document.getElementById('cardTotal'), summary.totalAmount, { prefix: '₹' });
       animateNumber(document.getElementById('cardContributors'), summary.totalContributors, {});
-      animateNumber(document.getElementById('cardPercent'), pct, { suffix: '%' });
-      document.getElementById('goalLabel').textContent = formatINR(goal);
-      const remaining = Math.max(0, goal - summary.totalAmount);
-      document.getElementById('goalRemaining').textContent = remaining > 0 ? formatINR(remaining) + ' to go' : 'Goal reached! 🎉';
-      document.getElementById('progressFill').style.width = pct + '%';
     }
 
     function renderList(filter) {
