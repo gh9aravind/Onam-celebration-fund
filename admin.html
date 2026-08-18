@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FestFund — Admin Panel</title>
+
+<!-- ============================================================
+     CONFIG: after you deploy Code.gs as a Web App, paste its URL
+     and set your PIN below in the <script> block (search "CONFIG").
+     ============================================================ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#170F2B',
+          cream: '#FFF6E9',
+          punch: '#FF3E73',
+          zap: '#FFC93C',
+          cool: '#14B8A6',
+          violet: '#7C4DFF',
+        },
+        fontFamily: {
+          display: ['"Space Grotesk"', 'sans-serif'],
+          body: ['"Inter"', 'sans-serif'],
+          mono: ['"Space Mono"', 'monospace'],
+        },
+        boxShadow: {
+          pop: '0 14px 34px -12px rgba(23,16,43,0.28)',
+        },
+      },
+    },
+  };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+<style>
+  .bg-dots{ background-image: radial-gradient(rgba(255,246,233,0.14) 1.5px, transparent 1.5px); background-size: 18px 18px; }
+  ::selection{ background:#FF3E73; color:#FFF6E9; }
+
+  @keyframes popIn{ from{ opacity:0; transform:translateY(8px) scale(.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  .animate-pop{ animation:popIn .35s ease-out; }
+
+  @keyframes drawCheck{ to{ stroke-dashoffset:0; } }
+  .check-path{ stroke-dasharray:40; stroke-dashoffset:40; animation:drawCheck .5s ease-out .1s forwards; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  }
+</style>
+</head>
+
+<body class="bg-cream text-ink font-body min-h-screen antialiased">
+
+  <!-- ============ NAV ============ -->
+  <header class="sticky top-0 z-40 bg-cream/90 backdrop-blur border-b-2 border-ink/10">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🎟️</span>
+        <span class="font-display font-bold text-lg">Fest<span class="text-punch">Fund</span></span>
+      </div>
+      <a href="index.html" class="px-4 py-2 rounded-full font-display font-semibold text-sm bg-ink text-cream hover:bg-punch transition-colors">🎉 Public View</a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4">
+
+    <div class="bg-ink text-cream rounded-b-[2.5rem] sm:rounded-[2rem] sm:mt-6 px-6 py-10 text-center bg-dots">
+      <p class="font-display uppercase tracking-[0.3em] text-xs text-zap">Backstage Access</p>
+      <h1 class="font-display text-3xl font-bold mt-2">Add a Contribution 🎟️</h1>
+      <p class="mt-2 text-cream/70 text-sm">Enter the 4-digit PIN to unlock the entry form.</p>
+    </div>
+
+    <!-- PIN lock -->
+    <div id="pinLock" class="max-w-sm mx-auto -mt-6 sm:-mt-8 bg-white rounded-3xl shadow-pop border border-ink/5 px-6 py-8 text-center">
+      <div class="flex justify-center gap-3 mb-4">
+        <input aria-label="PIN digit 1" type="tel" inputmode="numeric" maxlength="1" class="pin-box w-12 h-14 text-center text-2xl font-mono font-bold border-2 border-ink/15 rounded-xl focus:outline-none focus:border-punch transition-colors">
+        <input aria-label="PIN digit 2" type="tel" inputmode="numeric" maxlength="1" class="pin-box w-12 h-14 text-center text-2xl font-mono font-bold border-2 border-ink/15 rounded-xl focus:outline-none focus:border-punch transition-colors">
+        <input aria-label="PIN digit 3" type="tel" inputmode="numeric" maxlength="1" class="pin-box w-12 h-14 text-center text-2xl font-mono font-bold border-2 border-ink/15 rounded-xl focus:outline-none focus:border-punch transition-colors">
+        <input aria-label="PIN digit 4" type="tel" inputmode="numeric" maxlength="1" class="pin-box w-12 h-14 text-center text-2xl font-mono font-bold border-2 border-ink/15 rounded-xl focus:outline-none focus:border-punch transition-colors">
+      </div>
+      <p id="pinError" class="text-punch text-sm h-5"></p>
+      <button id="pinSubmit" type="button" class="mt-2 w-full py-3 rounded-full bg-ink text-cream font-display font-semibold hover:bg-punch transition-colors">Unlock 🔓</button>
+    </div>
+
+    <!-- Entry form (hidden until PIN correct) -->
+    <form id="adminFormEl" class="hidden max-w-sm mx-auto -mt-6 sm:-mt-8 bg-white rounded-3xl shadow-pop border border-ink/5 px-6 py-8 space-y-4 mb-16">
+      <div>
+        <label for="inputName" class="text-xs font-semibold uppercase tracking-wide text-ink/50">Student Name</label>
+        <input id="inputName" type="text" required placeholder="e.g. Anjali Menon" class="mt-1 w-full px-4 py-3 rounded-2xl border-2 border-ink/10 focus:outline-none focus:border-punch transition-colors">
+      </div>
+      <div>
+        <label for="inputDept" class="text-xs font-semibold uppercase tracking-wide text-ink/50">Department / Class</label>
+        <input id="inputDept" list="deptSuggestions" type="text" required placeholder="e.g. CSE - S6" class="mt-1 w-full px-4 py-3 rounded-2xl border-2 border-ink/10 focus:outline-none focus:border-punch transition-colors">
+        <datalist id="deptSuggestions">
+          <option value="CSE"></option>
+          <option value="ECE"></option>
+          <option value="EEE"></option>
+          <option value="Mechanical"></option>
+          <option value="Civil"></option>
+          <option value="IT"></option>
+          <option value="MBA"></option>
+          <option value="BCA"></option>
+        </datalist>
+      </div>
+      <div>
+        <label for="inputAmount" class="text-xs font-semibold uppercase tracking-wide text-ink/50">Amount (₹)</label>
+        <input id="inputAmount" type="number" min="1" step="1" required value="100" class="mt-1 w-full px-4 py-3 rounded-2xl border-2 border-ink/10 focus:outline-none focus:border-punch transition-colors font-mono">
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-ink/50 mb-2">Payment Status</p>
+        <div class="flex gap-3">
+          <button type="button" data-value="Paid" class="status-btn flex-1 py-3 rounded-2xl font-display font-semibold text-sm border-2 transition-colors">✅ Paid</button>
+          <button type="button" data-value="Pending" class="status-btn flex-1 py-3 rounded-2xl font-display font-semibold text-sm border-2 transition-colors">⏳ Pending</button>
+        </div>
+      </div>
+      <button id="submitBtn" type="submit" class="w-full py-3 rounded-full bg-punch text-white font-display font-semibold hover:bg-ink transition-colors flex items-center justify-center gap-2">
+        Add Contribution 🎉
+      </button>
+      <div id="formMsg" class="text-sm text-center"></div>
+    </form>
+  </main>
+
+  <footer class="text-center text-xs text-ink/30 py-8">Made with 💛 for the fest crew — data lives in Google Sheets.</footer>
+
+  <script>
+    // ============================================================
+    // CONFIG — paste your Apps Script Web App URL and set your PIN
+    // ============================================================
+    const CONFIG = {
+      SCRIPT_URL: 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE',
+      ADMIN_PIN: '1234',
+    };
+
+    let currentStatus = 'Paid';
+    let sessionCount = 0;
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // ---------- PIN lock ----------
+    const pinBoxes = [...document.querySelectorAll('.pin-box')];
+    pinBoxes.forEach((box, i) => {
+      box.addEventListener('input', () => {
+        box.value = box.value.replace(/[^0-9]/g, '').slice(0, 1);
+        if (box.value && pinBoxes[i + 1]) pinBoxes[i + 1].focus();
+      });
+      box.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !box.value && pinBoxes[i - 1]) pinBoxes[i - 1].focus();
+        if (e.key === 'Enter') checkPin();
+      });
+    });
+    document.getElementById('pinSubmit').addEventListener('click', checkPin);
+
+    function checkPin() {
+      const entered = pinBoxes.map(b => b.value).join('');
+      if (entered.length < 4) { document.getElementById('pinError').textContent = 'Enter all 4 digits.'; return; }
+      if (entered === CONFIG.ADMIN_PIN) {
+        document.getElementById('pinLock').classList.add('hidden');
+        const form = document.getElementById('adminFormEl');
+        form.classList.remove('hidden');
+        form.classList.add('animate-pop');
+      } else {
+        document.getElementById('pinError').textContent = 'Incorrect PIN — try again.';
+        pinBoxes.forEach(b => b.value = '');
+        pinBoxes[0].focus();
+      }
+    }
+
+    // ---------- status toggle ----------
+    function updateStatusUI() {
+      document.querySelectorAll('.status-btn').forEach(btn => {
+        const active = btn.dataset.value === currentStatus;
+        const activeColor = btn.dataset.value === 'Paid' ? 'bg-cool text-white border-cool' : 'bg-violet text-white border-violet';
+        btn.className = 'status-btn flex-1 py-3 rounded-2xl font-display font-semibold text-sm border-2 transition-colors ' + (active ? activeColor : 'bg-white text-ink/50 border-ink/10');
+      });
+    }
+    document.querySelectorAll('.status-btn').forEach(b => b.addEventListener('click', () => { currentStatus = b.dataset.value; updateStatusUI(); }));
+
+    // ---------- submit ----------
+    function showMsg(type, text) {
+      const el = document.getElementById('formMsg');
+      if (!text) { el.innerHTML = ''; return; }
+      if (type === 'success') {
+        el.innerHTML = `<span class="inline-flex items-center gap-2 text-cool animate-pop"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2"/><path class="check-path" d="M7 12.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>${escapeHtml(text)}</span>`;
+      } else {
+        el.innerHTML = `<span class="text-punch animate-pop">${escapeHtml(text)}</span>`;
+      }
+    }
+
+    document.getElementById('adminFormEl').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nameEl = document.getElementById('inputName');
+      const deptEl = document.getElementById('inputDept');
+      const amountEl = document.getElementById('inputAmount');
+      const name = nameEl.value.trim();
+      const department = deptEl.value.trim();
+      const amount = Number(amountEl.value);
+      const btn = document.getElementById('submitBtn');
+
+      if (!name || !department || !amount || amount <= 0) { showMsg('error', 'Please fill in all fields with a valid amount.'); return; }
+      if (CONFIG.SCRIPT_URL.includes('PASTE_YOUR')) { showMsg('error', 'Connect your Google Sheet first — set CONFIG.SCRIPT_URL in the code.'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-cream/40 border-t-cream rounded-full animate-spin"></span> Saving…';
+      showMsg('', '');
+
+      try {
+        const res = await fetch(CONFIG.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ name, department, amount, status: currentStatus }) });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Something went wrong.');
+
+        sessionCount++;
+        showMsg('success', `Added ${name} — ₹${amount} (${currentStatus}). ${sessionCount} added this session.`);
+        if (window.confetti && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 }, colors: ['#FF3E73', '#FFC93C', '#14B8A6', '#7C4DFF'] });
+        }
+        nameEl.value = ''; deptEl.value = ''; amountEl.value = '100';
+        currentStatus = 'Paid'; updateStatusUI();
+        nameEl.focus();
+      } catch (err) {
+        showMsg('error', 'Could not save — please try again. (' + err.message + ')');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Add Contribution 🎉';
+      }
+    });
+
+    // ---------- init ----------
+    updateStatusUI();
+  </script>
+</body>
+</html>
